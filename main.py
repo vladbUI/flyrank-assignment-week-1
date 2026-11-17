@@ -84,3 +84,21 @@ def create_task(body: dict = Body(...)):
             (body["title"].strip(), body.get("done", False)),
         )
         return to_task(get_or_404(conn, cur.lastrowid))
+
+
+@app.put("/tasks/{task_id}")
+def update_task(task_id: int, body: dict = Body(...)):
+    validate(body, require_title=False)
+    with db() as conn:
+        row = get_or_404(conn, task_id)
+        title = body["title"].strip() if "title" in body else row["title"]
+        done = body.get("done", bool(row["done"]))
+        conn.execute("UPDATE tasks SET title = ?, done = ? WHERE id = ?", (title, done, task_id))
+        return to_task(get_or_404(conn, task_id))
+
+
+@app.delete("/tasks/{task_id}", status_code=204)
+def delete_task(task_id: int):
+    with db() as conn:
+        get_or_404(conn, task_id)
+        conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
